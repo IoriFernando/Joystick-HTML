@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Joystick Interativo</title>
+    <style>
+        /* Estilos do corpo da página */
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+
+        /* Contêiner do joystick */
+        .joystick-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+        }
+
+        /* Base do joystick (círculo onde a alavanca se move) */
+        .joystick-base {
+            width: 100%;
+            height: 100%;
+            background-color: #ddd;
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Alavanca (knob) do joystick */
+        .joystick-knob {
+            width: 50px;
+            height: 50px;
+            background-color: #333;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+        }
+
+        /* Exibição da direção do joystick */
+        #directions {
+            position: absolute;
+            top: 220px;
+            width: 100%;
+            text-align: center;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="joystick-container">
+        <div class="joystick-base">
+            <div class="joystick-knob"></div>
+        </div>
+        <div id="directions">Direção: Centro</div>
+    </div>
+
+    <script>
+        const joystickKnob = document.querySelector('.joystick-knob'); // Referência à alavanca
+        const joystickBase = document.querySelector('.joystick-base'); // Referência à base do joystick
+        const directions = document.getElementById('directions'); // Elemento que mostra a direção
+
+        let isDragging = false; // Controle se o mouse está arrastando
+        let baseRect = joystickBase.getBoundingClientRect(); // Pega a posição da base do joystick
+
+        // Função para mover a alavanca dentro dos limites da base
+        function moveJoystick(e) {
+            if (!isDragging) return;
+
+            let offsetX = e.clientX - baseRect.left; // Posição horizontal do mouse dentro da base
+            let offsetY = e.clientY - baseRect.top;  // Posição vertical do mouse dentro da base
+
+            // Limite para garantir que a alavanca não saia da base circular
+            let distance = Math.sqrt(Math.pow(offsetX - baseRect.width / 2, 2) + Math.pow(offsetY - baseRect.height / 2, 2));
+            if (distance > baseRect.width / 2) {
+                let angle = Math.atan2(offsetY - baseRect.height / 2, offsetX - baseRect.width / 2); // Calcula o ângulo
+                offsetX = baseRect.width / 2 + Math.cos(angle) * (baseRect.width / 2); // Calcula nova posição dentro do limite
+                offsetY = baseRect.height / 2 + Math.sin(angle) * (baseRect.height / 2); // Calcula nova posição dentro do limite
+            }
+
+            // Posiciona a alavanca de acordo com os novos valores
+            joystickKnob.style.left = `${offsetX - joystickKnob.offsetWidth / 2}px`;
+            joystickKnob.style.top = `${offsetY - joystickKnob.offsetHeight / 2}px`;
+
+            // Atualiza a direção com base na posição da alavanca
+            let direction = getJoystickDirection(offsetX - baseRect.width / 2, offsetY - baseRect.height / 2);
+            directions.innerText = `Direção: ${direction}`;
+        }
+
+        // Função chamada ao começar a arrastar o joystick
+        function startDrag(e) {
+            isDragging = true; // Ativa o estado de arrasto
+            moveJoystick(e);   // Chama a função para posicionar imediatamente a alavanca
+        }
+
+        // Função chamada ao soltar o mouse, para parar o arrasto
+        function stopDrag() {
+            isDragging = false; // Desativa o estado de arrasto
+            joystickKnob.style.left = `50%`; // Retorna a alavanca ao centro
+            joystickKnob.style.top = `50%`;  // Retorna a alavanca ao centro
+            directions.innerText = `Direção: Centro`; // Mostra que está no centro
+        }
+
+        // Função que calcula a direção (cima, baixo, esquerda, direita e diagonais)
+        function getJoystickDirection(offsetX, offsetY) {
+            const angle = Math.atan2(offsetY, offsetX) * 180 / Math.PI;
+            const absAngle = Math.abs(angle);
+
+            if (absAngle <= 45) {
+                return offsetX > 0 ? "Direita" : "Esquerda";
+            } else if (absAngle > 45 && absAngle <= 135) {
+                return offsetY > 0 ? "Baixo" : "Cima";
+            } else {
+                if (offsetX > 0 && offsetY > 0) {
+                    return "Baixo Direita";
+                } else if (offsetX > 0 && offsetY < 0) {
+                    return "Cima Direita";
+                } else if (offsetX < 0 && offsetY > 0) {
+                    return "Baixo Esquerda";
+                } else {
+                    return "Cima Esquerda";
+                }
+            }
+        }
+
+        // Evento para quando o mouse pressionar a alavanca
+        joystickKnob.addEventListener('mousedown', (e) => {
+            e.preventDefault();  // Impede o comportamento padrão do navegador
+            startDrag(e);        // Inicia o arrasto
+            document.addEventListener('mousemove', moveJoystick); // Adiciona o movimento do mouse
+        });
+
+        // Evento para quando o mouse for solto
+        document.addEventListener('mouseup', () => {
+            stopDrag(); // Para o arrasto e retorna a alavanca ao centro
+            document.removeEventListener('mousemove', moveJoystick); // Remove o evento de movimento
+        });
+
+        // Caso o mouse saia da tela, o arrasto também é interrompido
+        document.addEventListener('mouseleave', () => {
+            stopDrag(); // Para o arrasto e retorna a alavanca ao centro
+            document.removeEventListener('mousemove', moveJoystick); // Remove o evento de movimento
+        });
+    </script>
+</body>
+</html>
