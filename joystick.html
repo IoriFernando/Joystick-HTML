@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Joystick Interativo</title>
+    <title>Joystick</title>
     <style>
-        /* Estilos do corpo da página */
         body {
             font-family: Arial, sans-serif;
             display: flex;
@@ -14,16 +13,16 @@
             height: 100vh;
             margin: 0;
             background-color: #f0f0f0;
+            flex-direction: column;
         }
 
-        /* Contêiner do joystick */
         .joystick-container {
             position: relative;
             width: 200px;
             height: 200px;
+            flex-direction: column;
         }
 
-        /* Base do joystick (círculo onde a alavanca se move) */
         .joystick-base {
             width: 100%;
             height: 100%;
@@ -33,7 +32,6 @@
             overflow: hidden;
         }
 
-        /* Alavanca (knob) do joystick */
         .joystick-knob {
             width: 50px;
             height: 50px;
@@ -46,110 +44,90 @@
             cursor: pointer;
         }
 
-        /* Exibição da direção do joystick */
-        #directions {
-            position: absolute;
-            top: 220px;
-            width: 100%;
+        #direction {
+            margin-top: 20px;
             text-align: center;
             font-size: 18px;
         }
     </style>
 </head>
 <body>
+
     <div class="joystick-container">
         <div class="joystick-base">
             <div class="joystick-knob"></div>
         </div>
-        <div id="directions">Direção: Centro</div>
     </div>
+    <div id="direction">Direção: Centro</div>
 
     <script>
-        const joystickKnob = document.querySelector('.joystick-knob'); // Referência à alavanca
-        const joystickBase = document.querySelector('.joystick-base'); // Referência à base do joystick
-        const directions = document.getElementById('directions'); // Elemento que mostra a direção
+        const knob = document.querySelector('.joystick-knob');
+        const base = document.querySelector('.joystick-base');
+        const direction = document.getElementById('direction');
 
-        let isDragging = false; // Controle se o mouse está arrastando
-        let baseRect = joystickBase.getBoundingClientRect(); // Pega a posição da base do joystick
+        // Obter as dimensões da base
+        const baseRect = base.getBoundingClientRect();
+        const baseCenter = {x: baseRect.width / 2, y: baseRect.height / 2};
+        const maxDistance = baseRect.width / 2 - knob.offsetWidth / 2;
 
-        // Função para mover a alavanca dentro dos limites da base
-        function moveJoystick(e) {
-            if (!isDragging) return;
+        // Função de movimentação da bolinha
+        function moveKnob(x, y) {
+            const dx = x - baseCenter.x;
+            const dy = y - baseCenter.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
 
-            let offsetX = e.clientX - baseRect.left; // Posição horizontal do mouse dentro da base
-            let offsetY = e.clientY - baseRect.top;  // Posição vertical do mouse dentro da base
-
-            // Limite para garantir que a alavanca não saia da base circular
-            let distance = Math.sqrt(Math.pow(offsetX - baseRect.width / 2, 2) + Math.pow(offsetY - baseRect.height / 2, 2));
-            if (distance > baseRect.width / 2) {
-                let angle = Math.atan2(offsetY - baseRect.height / 2, offsetX - baseRect.width / 2); // Calcula o ângulo
-                offsetX = baseRect.width / 2 + Math.cos(angle) * (baseRect.width / 2); // Calcula nova posição dentro do limite
-                offsetY = baseRect.height / 2 + Math.sin(angle) * (baseRect.height / 2); // Calcula nova posição dentro do limite
+            // Limitar a posição do knob dentro da base
+            if (distance > maxDistance) {
+                x = baseCenter.x + (dx / distance) * maxDistance;
+                y = baseCenter.y + (dy / distance) * maxDistance;
             }
 
-            // Posiciona a alavanca de acordo com os novos valores
-            joystickKnob.style.left = `${offsetX - joystickKnob.offsetWidth / 2}px`;
-            joystickKnob.style.top = `${offsetY - joystickKnob.offsetHeight / 2}px`;
+            knob.style.left = `${x}px`;
+            knob.style.top = `${y}px`;
 
-            // Atualiza a direção com base na posição da alavanca
-            let direction = getJoystickDirection(offsetX - baseRect.width / 2, offsetY - baseRect.height / 2);
-            directions.innerText = `Direção: ${direction}`;
-        }
-
-        // Função chamada ao começar a arrastar o joystick
-        function startDrag(e) {
-            isDragging = true; // Ativa o estado de arrasto
-            moveJoystick(e);   // Chama a função para posicionar imediatamente a alavanca
-        }
-
-        // Função chamada ao soltar o mouse, para parar o arrasto
-        function stopDrag() {
-            isDragging = false; // Desativa o estado de arrasto
-            joystickKnob.style.left = `50%`; // Retorna a alavanca ao centro
-            joystickKnob.style.top = `50%`;  // Retorna a alavanca ao centro
-            directions.innerText = `Direção: Centro`; // Mostra que está no centro
-        }
-
-        // Função que calcula a direção (cima, baixo, esquerda, direita e diagonais)
-        function getJoystickDirection(offsetX, offsetY) {
-            const angle = Math.atan2(offsetY, offsetX) * 180 / Math.PI;
-            const absAngle = Math.abs(angle);
-
-            if (absAngle <= 45) {
-                return offsetX > 0 ? "Direita" : "Esquerda";
-            } else if (absAngle > 45 && absAngle <= 135) {
-                return offsetY > 0 ? "Baixo" : "Cima";
+            // Atualizar a direção com base na posição do knob
+            if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+                direction.innerText = 'Direção: Centro';
+            } else if (Math.abs(dy) > Math.abs(dx)) {
+                direction.innerText = dy > 0 ? 'Direção: Baixo' : 'Direção: Cima';
             } else {
-                if (offsetX > 0 && offsetY > 0) {
-                    return "Baixo Direita";
-                } else if (offsetX > 0 && offsetY < 0) {
-                    return "Cima Direita";
-                } else if (offsetX < 0 && offsetY > 0) {
-                    return "Baixo Esquerda";
-                } else {
-                    return "Cima Esquerda";
-                }
+                direction.innerText = dx > 0 ? 'Direção: Direita' : 'Direção: Esquerda';
             }
         }
 
-        // Evento para quando o mouse pressionar a alavanca
-        joystickKnob.addEventListener('mousedown', (e) => {
-            e.preventDefault();  // Impede o comportamento padrão do navegador
-            startDrag(e);        // Inicia o arrasto
-            document.addEventListener('mousemove', moveJoystick); // Adiciona o movimento do mouse
+        let isDragging = false;
+
+        // Iniciar o movimento quando o mouse for pressionado
+        knob.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            e.preventDefault(); // Previne seleção de texto
         });
 
-        // Evento para quando o mouse for solto
+        // Mover o knob enquanto o mouse está pressionado
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const mouseX = e.clientX - base.getBoundingClientRect().left;
+                const mouseY = e.clientY - base.getBoundingClientRect().top;
+                moveKnob(mouseX, mouseY);
+            }
+        });
+
+        // Parar o movimento quando o botão do mouse for solto e centralizar a bolinha
         document.addEventListener('mouseup', () => {
-            stopDrag(); // Para o arrasto e retorna a alavanca ao centro
-            document.removeEventListener('mousemove', moveJoystick); // Remove o evento de movimento
+            isDragging = false;
+            // Obter as dimensões da base e o centro ao soltar o mouse
         });
 
-        // Caso o mouse saia da tela, o arrasto também é interrompido
-        document.addEventListener('mouseleave', () => {
-            stopDrag(); // Para o arrasto e retorna a alavanca ao centro
-            document.removeEventListener('mousemove', moveJoystick); // Remove o evento de movimento
+        // Permitir mover o knob ao clicar na base
+        base.addEventListener('click', (e) => {
+            const mouseX = e.clientX - base.getBoundingClientRect().left;
+            const mouseY = e.clientY - base.getBoundingClientRect().top;
+            moveKnob(mouseX, mouseY);
         });
+
+        
+
     </script>
+
 </body>
 </html>
